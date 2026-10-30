@@ -1,0 +1,23 @@
+# Three-times-a-day trigger for the DAILY folder of the backup folder
+# (backup.sh --target daily, newest 3 kept). The weekly folder has its
+# own timer (backup-weekly.timer) and the monthly folder another
+# (backup-monthly.timer).
+# Install: see the header of /opt/gmac/ops/backup.sh.
+
+[Unit]
+Description=gmac backup to the daily folder (03:00, 11:00 and 19:00 UTC)
+
+[Timer]
+# Explicit UTC: the VPS local time must not shift the backup windows. Three
+# runs a day, about eight hours apart (2026-10-27; was nightly at 03:00).
+# One timer on purpose: replacing these lines is the schedule change; a
+# second timer would double-run against the same repository.
+OnCalendar=*-*-* 03:00:00 UTC
+OnCalendar=*-*-* 11:00:00 UTC
+OnCalendar=*-*-* 19:00:00 UTC
+# Catch up after a reboot or downtime instead of skipping a slot entirely.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

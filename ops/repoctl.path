@@ -1,0 +1,20 @@
+# repoctl.path — run one dashboard "Backups & Restore" request.
+#
+# The panel lives in a container without the backup repository's secrets, so
+# it drops request.json in /data/backup-drives/ctl/ (the directory it already
+# shares with the backup's Drive sign-in) and this unit starts
+# ops/repoctl.py the moment it appears. The script claims (renames) the
+# request on arrival, so each request runs exactly once and the unit resets.
+#
+# Install (on the VPS, as root):
+#   install -m 0644 ops/repoctl.path ops/repoctl.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now repoctl.path
+[Unit]
+Description=Dashboard Backup & restore request (restic repository control)
+
+[Path]
+PathExists=/data/backup-drives/ctl/request.json
+Unit=repoctl.service
+
+[Install]
+WantedBy=multi-user.target

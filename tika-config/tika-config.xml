@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+  <pipes>
+    <params>
+      <maxIpcPayloadBytes>524288000</maxIpcPayloadBytes>
+    </params>
+  </pipes>
+</properties>

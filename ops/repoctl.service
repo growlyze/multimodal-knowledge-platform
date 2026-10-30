@@ -1,0 +1,33 @@
+# repoctl.service — one dashboard "Backups & Restore" request
+# (ops/repoctl.py). Started by repoctl.path when request.json appears.
+#
+# Everything it does is read-only on the backup repository except backup-now,
+# which runs the nightly job's own script under the nightly job's own lock —
+# a manual run can never overlap the 03:03 scheduled run. Restore never
+# overwrites existing files and never touches a backup.
+#
+# Secrets (RESTIC_PASSWORD, the rclone token) live in this unit's environment
+# only as they live for backup.service: in /opt/gmac/.env and
+# /root/.config/rclone, read by the script, never logged.
+[Unit]
+Description=Dashboard Backup & restore request
+After=network.target
+
+[Service]
+Environment=INSTALL_DIR=/opt/gmac
+Environment=STACK_NAME=gmac
+Type=oneshot
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/ops/repoctl.py
+# The script holds the shared backup lock only while it works; a heavy restore
+# may run for a while. No timeout beyond the generous default.
+TimeoutStartSec=4h
+# A full restore stops gmac-open-webui and gmac-haystack and restarts them in
+# Python's `finally`. A timeout (TimeoutStartSec above), a kill, or
+# `systemctl stop` mid-restore ends the process with SIGTERM/SIGKILL and that
+# `finally` never runs — the chat site would stay down until someone noticed.
+# ExecStopPost runs after the main process ends however it ended. `docker
+# start` on a running container is a no-op, so after a normal request it does
+# nothing; the leading `-` keeps a failure here from marking the unit failed.
+# (The pre-database phases' own timeouts — FULL_*_TIMEOUT_S in repoctl.py —
+# sum to 3h20, so they fail with a reason before this 4h limit is reached.)
+ExecStopPost=-/usr/bin/docker start ${STACK_NAME}-open-webui ${STACK_NAME}-haystack

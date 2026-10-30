@@ -1,0 +1,17 @@
+# Friday 20:00 UTC trigger for backup-weekly.service: one backup a week
+# into the weekly folder (newest 2 kept).
+# Install: see ops/backup-weekly.service.
+
+[Unit]
+Description=Weekly gmac backup to the weekly folder (Fridays 20:00 UTC)
+
+[Timer]
+# Explicit UTC. After the 19:00 daily slot; the shared lock means the two can
+# never run at the same time anyway.
+OnCalendar=Fri *-*-* 20:00:00 UTC
+# A missed Friday is caught up, never skipped.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

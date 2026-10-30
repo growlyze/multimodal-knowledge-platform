@@ -1,0 +1,26 @@
+# DOMAIN comes from .env (compose.yml passes it to this container); Caddy
+# obtains and renews the HTTPS certificate for it automatically.
+{$DOMAIN:localhost} {
+    request_body {
+        max_size 100MB
+    }
+
+    # Admin dashboard (Next.js, compose service `dashboard`, basePath /kb).
+    redir /kb /kb/ permanent
+    handle /kb/* {
+        reverse_proxy dashboard:3000
+    }
+
+    # Phoenix observability UI — public but gated by Phoenix's own login
+    # (PHOENIX_ENABLE_AUTH=True in compose.yml). handle_path strips /traces
+    # before forwarding; PHOENIX_HOST_ROOT_PATH=/traces on the container tells
+    # Phoenix what was stripped so it generates correct links/asset URLs.
+    # No dedicated subdomain — no spare DNS record when this was set up.
+    handle_path /traces/* {
+        reverse_proxy phoenix:6006
+    }
+
+    handle {
+        reverse_proxy open-webui:8080
+    }
+}

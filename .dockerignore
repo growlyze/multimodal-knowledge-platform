@@ -1,0 +1,34 @@
+# Only applies to builds whose context is this directory — currently just
+# haystack-api (compose.yml: context is the repo root so the Dockerfile can
+# reach processing/telemetry/). Other services build from their own
+# subdirectories and never see this file.
+#
+# Without this, the build context is the whole monorepo, including a 3GB
+# backups/ directory on the VPS that would be tarred and sent to the Docker
+# daemon on every build for no reason.
+
+.git
+backups/
+compose.yml.bak
+compose.yml.pre-*
+docs/
+dashboard/
+**/node_modules/
+**/.next/
+webui-image/
+code-execution/
+filters/
+tika-config/
+ops/
+tests/
+__pycache__/
+*.pyc
+*.md
+.env
+.pg_pass
+.pytest_cache/
+.hypothesis/
+.impeccable/
+.worktrees/
+
+# haystack-api/ and processing/telemetry/ are NOT excluded — Dockerfile COPYs both.

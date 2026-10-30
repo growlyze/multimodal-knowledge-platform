@@ -1,0 +1,322 @@
+# Growlyze Multimodal AI Chat — one independent stack per client deployment.
+#
+# Every value comes from .env (copy .env.example). Variables written as
+# ${VAR:?...} are REQUIRED: `docker compose` refuses to start without them.
+# The project name (and so every container/network prefix) is STACK_NAME.
+# Persistent data lives under DATA_DIR (default /data). Config files are
+# mounted straight from this repository (paths relative to this file).
+name: ${STACK_NAME:-gmac}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${STACK_NAME:-gmac}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: openwebui
+      POSTGRES_USER: openwebui
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ${DATA_DIR:-/data}/postgres:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openwebui"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Vector store. No container_name on purpose: Compose names it
+  # <STACK_NAME>-qdrant-1, which ops/restore-drill.sh expects.
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR:-/data}/qdrant:/qdrant/storage
+    networks:
+      - backend
+
+  # Chat frontend. WEBUI_NAME (browser title / branding) follows APP_NAME.
+  open-webui:
+    build:
+      context: ./webui-image
+      dockerfile: Dockerfile
+      args:
+        WEBUI_NAME: ${APP_NAME:-Growlyze Multimodal AI Chat}
+    container_name: ${STACK_NAME:-gmac}-open-webui
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_DIR:-/data}/openwebui:/app/backend/data
+    networks:
+      - backend
+      - proxy
+    environment:
+      WEBUI_NAME: ${APP_NAME:-Growlyze Multimodal AI Chat}
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?set WEBUI_SECRET_KEY in .env}
+      ENABLE_KB_EXEC: "False"
+      DATABASE_URL: "postgresql://openwebui:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/openwebui"
+      # Background tabs/phones stop answering pings while the user is away;
+      # the default 25+20 s drops the socket on a ~30 s file-picker trip and
+      # the next send goes out with no session_id. 25+60 s rides those out.
+      WEBSOCKET_SERVER_PING_TIMEOUT: "60"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The only service with published ports. Serves https://DOMAIN with an
+  # automatic certificate: / -> open-webui, /kb/ -> dashboard, /traces/ -> phoenix.
+  caddy:
+    image: caddy:2-alpine
+    container_name: ${STACK_NAME:-gmac}-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN (the public hostname) in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_DIR:-/data}/caddy/data:/data
+      - ${DATA_DIR:-/data}/caddy/config:/config
+    networks:
+      - proxy
+
+  tika:
+    image: apache/tika:3.3.0.0-full
+    container_name: ${STACK_NAME:-gmac}-tika
+    volumes:
+      - ./tika-config/tika-config.xml:/tika-config.xml:ro
+    command: ["--config", "/tika-config.xml"]
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # Ingestion, extraction, retrieval and admin API (FastAPI). Also Open WebUI's
+  # external content loader: EXTERNAL_LOADER_API_KEY must match
+  # Admin -> Settings -> Documents -> External API Key. Admin endpoints
+  # require "Authorization: Bearer <ADMIN_API_KEY>" (the dashboard sends it).
+  haystack-api:
+    # Build context is the repo root (not ./haystack-api) so the Dockerfile
+    # can COPY processing/telemetry/ — the shared observability module
+    # haystack-api reaches through telemetry_compat.py.
+    build:
+      context: .
+      dockerfile: haystack-api/Dockerfile
+    container_name: ${STACK_NAME:-gmac}-haystack
+    restart: unless-stopped
+    # Provider keys (GOOGLE_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, ...) and
+    # tunables are read from .env.
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_DIR:-/data}/haystack-uploads:/data/haystack-uploads
+      # OPTIONAL (Google Drive integration): the folder holding rclone.conf,
+      # read-only (rclone itself is installed in the image). Shared with
+      # ops/backup.sh and only ever read: drive_intake.py runs rclone on a
+      # private copy so a token refresh never writes back to the host file.
+      # No rclone.conf there -> Drive intake reports "not configured".
+      - ${RCLONE_CONFIG_DIR:-/root/.config/rclone}:/run/rclone:ro
+      # OPTIONAL (Google Drive integration): the Drive account connected in the
+      # dashboard (/data/backup-drives/primary.json, the same file the backups
+      # apply via ops/backup_drives.py). drive_intake swaps it into its private
+      # rclone copy. Read-only; absent -> the server's own rclone remote.
+      - ${DATA_DIR:-/data}/backup-drives:/data/backup-drives:ro
+    networks:
+      - backend
+    environment:
+      TIKA_URL: "http://tika:9998"
+      QDRANT_URL: "http://qdrant:6333"
+      # Without an embedding key create_embedding_provider() falls back to a
+      # StubProvider and every stored vector is noise - so it is required.
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?set EMBEDDING_API_KEY in .env}
+      EXTERNAL_LOADER_API_KEY: ${EXTERNAL_LOADER_API_KEY:?set EXTERNAL_LOADER_API_KEY in .env}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?set ADMIN_API_KEY in .env}
+      # Read-only key the code sandbox uses for stored datasets.
+      DATA_API_KEY: ${DATA_API_KEY:?set DATA_API_KEY in .env}
+      # Browser origins allowed to call the API directly. Empty = none: the
+      # dashboard calls it server-side, Open WebUI over the internal network.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # Same database as Open WebUI, on purpose: a structured upload becomes a
+      # real table prefixed data_ (services/db_service.py refuses to touch
+      # anything else).
+      DATABASE_URL: "postgresql://openwebui:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/openwebui"
+      # OPTIONAL (Google Drive integration): default Drive folder the intake
+      # lists until one is chosen in the dashboard. Empty disables Drive intake.
+      DRIVE_INTAKE_FOLDER_ID: "${DRIVE_INTAKE_FOLDER_ID:-}"
+      DRIVE_INTAKE_RCLONE_CONFIG: "/run/rclone/rclone.conf"
+      DRIVE_INTAKE_DRIVE_OVERRIDE: "${DRIVE_INTAKE_DRIVE_OVERRIDE:-/data/backup-drives/primary.json}"
+      VIDEO_DISCOVERY_CHANNEL_URL: "${VIDEO_DISCOVERY_CHANNEL_URL:-}"
+      # Video cost lever: frame descriptions on Gemini's Flex tier (half
+      # price, same model/prompt/image). A frame whose Flex call still fails
+      # after retries is re-sent on Standard (VIDEO_DESC_FLEX_FALLBACK, on by
+      # default). 16 workers because Flex requests can queue for minutes.
+      VIDEO_DESC_SERVICE_TIER: "${VIDEO_DESC_SERVICE_TIER:-flex}"
+      VIDEO_VISION_WORKERS: "${VIDEO_VISION_WORKERS:-16}"
+    depends_on:
+      tika:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  # Admin dashboard (Next.js), served at https://DOMAIN/kb/ by Caddy; no
+  # published ports. Calls haystack-api server-side with ADMIN_API_KEY and
+  # drives backups through the control files in /data/backup-drives/ctl.
+  dashboard:
+    build: ./dashboard
+    container_name: ${STACK_NAME:-gmac}-dashboard
+    restart: unless-stopped
+    # Root inside the container on purpose: the host-side backup tools
+    # (ops/repoctl.py, ops/backup.sh, run as root) write status.json /
+    # catalog.json mode 0600 into /data/backup-drives/ctl, and the dashboard
+    # must read them and write request.json / schedule.json / primary.json.
+    user: "0:0"
+    environment:
+      HAYSTACK_API_URL: "http://haystack-api:8000"
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?set ADMIN_API_KEY in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env (see .env.example)}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL in .env}
+      APP_NAME: ${APP_NAME:-Growlyze Multimodal AI Chat}
+      BACKUP_CTL_DIR: "/data/backup-drives/ctl"
+      # OPTIONAL (Google Drive integration): empty = Drive shows "not configured".
+      DRIVE_OAUTH_CLIENT_ID: ${DRIVE_OAUTH_CLIENT_ID:-}
+      DRIVE_OAUTH_CLIENT_SECRET: ${DRIVE_OAUTH_CLIENT_SECRET:-}
+      DRIVE_OAUTH_REDIRECT_URI: ${DRIVE_OAUTH_REDIRECT_URI:-}
+    volumes:
+      # rw on purpose: backup control files and the Drive connection record.
+      - ${DATA_DIR:-/data}/backup-drives:/data/backup-drives
+    depends_on:
+      - haystack-api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/kb/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+      - proxy
+
+  # Code-execution sandbox for Open WebUI (Open Terminal).
+  code-sandbox:
+    build: ./code-execution
+    image: ${STACK_NAME:-gmac}-code-sandbox
+    container_name: ${STACK_NAME:-gmac}-code-sandbox-1
+    restart: unless-stopped
+    # env_file deliberately not used: it would load every project secret into
+    # the one container that executes user-submitted code — WEBUI_SECRET_KEY
+    # included, which signs Open WebUI sessions and so allows forging any
+    # account.
+    environment:
+      OPEN_TERMINAL_API_KEY: ${OPEN_TERMINAL_API_KEY:?set OPEN_TERMINAL_API_KEY in .env}
+      OPEN_TERMINAL_EXECUTE_TIMEOUT: "600"
+      OPEN_TERMINAL_MULTI_USER: "false"
+      OPEN_TERMINAL_CORS_ALLOWED_ORIGINS: ""
+      PYTHONPATH: /opt/pylib
+      # data_tools.load_dataset() -> haystack-api, read-only dataset endpoints only.
+      HAYSTACK_API_URL: "http://haystack-api:8000"
+      HAYSTACK_API_KEY: ${DATA_API_KEY:?set DATA_API_KEY in .env}
+    volumes:
+      - ${DATA_DIR:-/data}/openwebui/uploads:/mnt/uploads:ro
+    read_only: true
+    tmpfs:
+      - /home/user:uid=1000,gid=1000,mode=0700,size=2g
+      - /tmp:uid=1000,gid=1000,mode=1777,size=1g
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    # A BLAST RADIUS, not an allocation: the only container that runs
+    # user-submitted code. One shared container serves ALL sessions, so two
+    # concurrent heavy jobs share this single budget. memswap_limit equal to
+    # mem_limit disables swap (a swapping sandbox would slow every other
+    # service instead of failing cleanly). cpus throttles via cgroups; runaway
+    # processes are killed by sandbox_watchdog.py. Size both to the host.
+    mem_limit: ${SANDBOX_MEM_LIMIT:-12g}
+    memswap_limit: ${SANDBOX_MEM_LIMIT:-12g}
+    cpus: ${SANDBOX_CPUS:-4.0}
+    networks:
+      - backend
+
+  # OpenAI-compatible model gateway (Claude, Gemini, ...). Open WebUI connects
+  # to http://litellm:4000/v1; models are defined in litellm-config.yaml and
+  # their keys are read from .env (os.environ/...).
+  litellm:
+    # Pinned, not :main-latest - a floating tag can break the stack with no
+    # change in git.
+    image: ghcr.io/berriai/litellm:v1.100.0
+    container_name: ${STACK_NAME:-gmac}-litellm
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Google's documented anti-MALFORMED_FUNCTION_CALL mode (constrained
+      # decoding of function calls) on Gemini requests that declare tools.
+      # Set to 0 to roll back.
+      GEMINI_FC_MODE_VALIDATED: "1"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+      # Retry callback, loaded by litellm_settings.callbacks from the config's directory.
+      - ./litellm-hooks/gemini_malformed_retry.py:/app/gemini_malformed_retry.py:ro
+    # Without --config the proxy boots with an empty model_list.
+    command: ["--config=/app/config.yaml"]
+    # No published ports: only Open WebUI talks to it, over the internal network.
+    networks:
+      - backend
+
+  # Observability (Arize Phoenix). OTLP gRPC on :4317 (internal only, never
+  # published); UI at https://DOMAIN/traces/ behind Phoenix's own login
+  # (PHOENIX_ENABLE_AUTH - do not remove it). PHOENIX_HOST_ROOT_PATH must match
+  # the Caddy path exactly.
+  phoenix:
+    image: arizephoenix/phoenix:20.14.0
+    container_name: ${STACK_NAME:-gmac}-phoenix
+    restart: unless-stopped
+    environment:
+      - PHOENIX_WORKING_DIR=/mnt/data
+      - PHOENIX_ENABLE_AUTH=True
+      - PHOENIX_HOST_ROOT_PATH=/traces
+      - PHOENIX_SECRET=${PHOENIX_SECRET:?set PHOENIX_SECRET in .env}
+      - PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD=${PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD:?set PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD in .env}
+    volumes:
+      - ${DATA_DIR:-/data}/phoenix:/mnt/data
+    networks:
+      - backend
+      - proxy
+
+  # YouTube PO-token provider for yt-dlp (video downloads). Unauthenticated by
+  # design per its own docs: internal-only, never publish a port.
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.2
+    container_name: ${STACK_NAME:-gmac}-bgutil-provider
+    restart: unless-stopped
+    networks:
+      - backend
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Keeps bgutil-provider (the only labelled container) up to date.
+  watchtower:
+    # nickfedor/watchtower is the maintained continuation of containrrr/watchtower.
+    image: nickfedor/watchtower:1.19.0
+    container_name: ${STACK_NAME:-gmac}-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    command: --label-enable
+
+networks:
+  # Internal service network (databases, APIs, sandbox).
+  backend:
+    name: ${STACK_NAME:-gmac}-network
+    driver: bridge
+  # Caddy and the services it routes to (open-webui, dashboard, phoenix).
+  proxy:
+    name: ${STACK_NAME:-gmac}-proxy
+    driver: bridge

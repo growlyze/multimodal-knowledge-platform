@@ -1,0 +1,23 @@
+# Storage monitor + sandbox file cleanup (P160). Run by storage-monitor.timer.
+# Install: see the header of /opt/gmac/ops/storage_monitor.sh.
+#
+# A failed run (any probe unmeasurable, or the report not written) exits 1, so
+# `systemctl status storage-monitor.service` shows "failed" and the
+# reason is in `journalctl -t gmac-storage-monitor`. A run that never happens
+# at all shows up as `stale` on GET /admin/storage after 2 hours.
+
+[Unit]
+Description=gmac storage monitor and sandbox file cleanup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=INSTALL_DIR=/opt/gmac
+Environment=STACK_NAME=gmac
+Type=oneshot
+ExecStart=/bin/bash ${INSTALL_DIR}/ops/storage_monitor.sh
+# du over /data/openwebui (17 GB) and /data/qdrant walks a lot of metadata;
+# keep it out of the way of chat traffic.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=15min

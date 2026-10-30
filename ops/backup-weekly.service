@@ -1,0 +1,20 @@
+# Weekly encrypted backup to the WEEKLY folder of the Google Drive backup
+# folder (rclone:gdrive:backups/weekly), keeping the newest 2. Run by
+# backup-weekly.timer (Fridays 20:00 UTC). Same script, same lock, same
+# verification as the daily runs — only the target folder and the kept count
+# differ. Install: see the header of /opt/gmac/ops/backup.sh.
+
+[Unit]
+Description=gmac encrypted backup to the weekly folder (restic + rclone)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=INSTALL_DIR=/opt/gmac
+Environment=STACK_NAME=gmac
+Type=oneshot
+ExecStart=/bin/bash ${INSTALL_DIR}/ops/backup.sh --target weekly
+TimeoutStartSec=6h
+Nice=10
+IOSchedulingClass=idle
+ProtectSystem=full

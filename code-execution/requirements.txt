@@ -1,0 +1,24 @@
+# Python environment for the code-execution sandbox.
+#
+# Target interpreter: CPython 3.12.13 — the interpreter inside
+# ghcr.io/open-webui/open-terminal:slim. Do not bump one without the other.
+#
+# Everything is pinned to an exact version. Reproducible results ("same
+# input twice -> identical output") only hold across image rebuilds if the
+# numeric stack cannot drift underneath it.
+
+# --- numeric core -----------------------------------------------------------
+numpy==2.5.2
+pandas==3.0.5
+
+# Generic scientific routines available to model-written analysis code.
+scipy==1.18.1
+
+# --- charting ---------------------------------------------------------------
+# matplotlib renders headless PNGs (MPLBACKEND=Agg, set in the Dockerfile).
+matplotlib==3.11.1
+
+# --- I/O --------------------------------------------------------------------
+openpyxl==3.1.5   # .xlsx workbooks uploaded through the chat
+# data_tools.load_dataset() talks to haystack-api via stdlib urllib - no HTTP
+# client dependency. sandbox_watchdog.py is stdlib-only as well.

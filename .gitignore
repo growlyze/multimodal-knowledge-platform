@@ -1,0 +1,45 @@
+.env
+__pycache__/
+*.pyc
+
+# Internal planning docs — live outside the repo, never commit them if copied in.
+PLAN.md
+CONTEXT.md
+CLAUDE_CODE_SESSIONS.md
+CONVERSATIONS.md
+
+.worktrees/
+
+# mutmut runs (mutation testing) leave full copies of every module plus
+# mutation metadata here — regenerate, don't commit.
+code-execution/mutants/
+
+# Real data files used to verify detector output against ground-truth counts.
+# Kept local on purpose and never pushed. Force-add a synthetic CSV with -f
+# if one is ever wanted.
+filters/tests/*.csv
+
+# Subagent-driven-development scratch: per-plan ledger, task briefs, review
+# packages. Regenerated per run, never part of the shipped code.
+.superpowers/
+
+# Project-tool settings — contain machine-local paths.
+.claude/
+
+# The repo holds only what the running system needs. Documentation, plans,
+# the knowledge base and notes live locally, never in the repo: history was
+# rewritten to remove them, so a re-added .md would leak again. README.md
+# is the one documented exception.
+*.md
+!README.md
+.pg_pass
+compose.yml.save
+
+# Dashboard (Next.js) build output and dependencies.
+dashboard/node_modules/
+dashboard/.next/
+dashboard/*.tsbuildinfo
+
+# Python tooling caches.
+.pytest_cache/
+.hypothesis/

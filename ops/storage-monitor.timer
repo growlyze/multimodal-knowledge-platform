@@ -1,0 +1,14 @@
+# Hourly trigger for storage-monitor.service (P160).
+# Install: see the header of /opt/gmac/ops/storage_monitor.sh.
+
+[Unit]
+Description=Hourly gmac storage monitor
+
+[Timer]
+OnCalendar=hourly
+# Catch up after a reboot or downtime instead of waiting for the next hour.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

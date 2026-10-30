@@ -1,0 +1,42 @@
+# Nightly encrypted backup to Google Drive (README.md). Run by
+# backup.timer at 03:00 UTC. Install: see the header of
+# /opt/gmac/ops/backup.sh (or README.md (Backups)).
+#
+# A failed run exits 1, so `systemctl status backup.service` shows
+# "failed" and the reason is in `journalctl -t gmac-backup`. Every run also
+# writes one ops_backup_reports row (running -> success/failed) shown by
+# GET /admin/backup and the dashboard's Backups section.
+#
+# No secrets here on purpose: RESTIC_PASSWORD is read by the script from
+# /opt/gmac/.env (root-only) and the rclone token lives in
+# /root/.config/rclone/rclone.conf. Keep both out of unit files.
+#
+# NOTE: do NOT add PrivateTmp=true here. The script stages the pg dump +
+# Qdrant snapshots (~2 GB) in /var/tmp/gmac-backup on purpose (documented
+# restore paths). With PrivateTmp that directory would live in a RAM-backed
+# tmpfs on a VPS shared with the live services — real memory pressure during
+# the backup, and the staged artifacts would vanish with the unit. The staging
+# dir is the script's own scratch (flock-guarded, cleared on exit) and does not
+# need namespace isolation.
+
+[Unit]
+Description=gmac encrypted backup to Google Drive (restic + rclone)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=INSTALL_DIR=/opt/gmac
+Environment=STACK_NAME=gmac
+Type=oneshot
+ExecStart=/bin/bash ${INSTALL_DIR}/ops/backup.sh
+# First run uploads the full ~5 GB (database + vectors + uploads); later runs
+# only upload changes. Generous ceiling so a slow first upload is not killed
+# mid-snapshot (a killed run is a failed run — restic reports no recovery point).
+TimeoutStartSec=6h
+# Backups must not compete with chat traffic: restic hashing and rclone upload
+# are both I/O heavy.
+Nice=10
+IOSchedulingClass=idle
+# Read-only /usr, /boot, /etc for the run; /data and /var/tmp stay writable
+# (the script must stage there and read the mounts).
+ProtectSystem=full

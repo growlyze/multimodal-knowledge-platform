@@ -1,0 +1,11 @@
+# Dev/test-only dependencies for data_tools property, fuzz and mutation
+# testing. NEVER add these to requirements.txt — that file is baked into the
+# code-sandbox Docker image (build: ./code-execution in compose.yml), and
+# these tools have no reason to exist inside a customer's sandbox container.
+#
+# All are pure-Python wheels with no numpy/pandas ABI coupling, so unlike
+# numpy/pandas in requirements.txt they don't need to match the
+# sandbox's exact CPython 3.12.13 build — CPython 3.12+ is enough.
+pytest==9.1.1
+hypothesis==6.168.0
+mutmut==3.7.0

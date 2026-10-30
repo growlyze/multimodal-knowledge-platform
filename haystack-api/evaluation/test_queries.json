@@ -1,0 +1,202 @@
+{
+  "description": "Domain-neutral retrieval test set. Layer 3 runs every query through GET /search and scores precision@5, recall@10, MRR and jargon hit rate against these expectations. Schema per case: query (str), difficulty (str: basic | jargon-abbreviation | cross-collection | code | specific | video-retrieval | video-timestamp), expected_keywords_in_result ([str]), optional expected_source_type (str), optional expected_collections ([str]), optional expected_has_timestamp (bool).",
+  "targets": {
+    "precision_at_5": 0.8,
+    "recall_at_10": 0.85,
+    "mrr": 0.7,
+    "jargon_hit_rate": 0.9
+  },
+  "test_queries": [
+    {
+      "query": "What is a service level agreement?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["service level agreement", "uptime", "response time"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "How does the onboarding process work?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["onboarding", "checklist", "first week"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "Explain the deployment pipeline stages",
+      "expected_keywords_in_result": ["deployment", "pipeline", "staging", "production"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "What is a rolling average and when is it used?",
+      "expected_keywords_in_result": ["rolling average", "smoothing", "time series"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "What is a load balancer and how does it differ from a reverse proxy?",
+      "expected_keywords_in_result": ["load balancer", "reverse proxy"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "How do you identify a bottleneck in a processing queue?",
+      "expected_keywords_in_result": ["bottleneck", "queue", "throughput"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "What is caching and why does it matter?",
+      "expected_keywords_in_result": ["caching", "latency", "hit rate"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "Explain the three phases intake review approval",
+      "expected_keywords_in_result": ["intake", "review", "approval"],
+      "difficulty": "basic"
+    },
+    {
+      "query": "SLA",
+      "expected_keywords_in_result": ["service level agreement"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "MTTR",
+      "expected_keywords_in_result": ["mean time to recovery"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "RPO",
+      "expected_keywords_in_result": ["recovery point objective"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "RBAC",
+      "expected_keywords_in_result": ["role based access control"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "CI",
+      "expected_keywords_in_result": ["continuous integration"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "POC and MVP",
+      "expected_keywords_in_result": ["proof of concept", "minimum viable product"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "SLO of the service tier",
+      "expected_keywords_in_result": ["service level objective", "service tier"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "ETL vs ELT",
+      "expected_keywords_in_result": ["extract", "transform", "load"],
+      "difficulty": "jargon-abbreviation"
+    },
+    {
+      "query": "Script that detects duplicate rows in the dataset",
+      "expected_collections": ["documents", "code_docs"],
+      "expected_keywords_in_result": ["duplicate", "dataset"],
+      "difficulty": "cross-collection"
+    },
+    {
+      "query": "Write code to validate the configuration file against the schema",
+      "expected_collections": ["documents", "code_docs"],
+      "expected_keywords_in_result": ["validate", "configuration"],
+      "difficulty": "cross-collection"
+    },
+    {
+      "query": "How do I plot a rolling average on the dashboard in the charting library?",
+      "expected_collections": ["documents", "code_docs"],
+      "expected_keywords_in_result": ["rolling average", "chart"],
+      "difficulty": "cross-collection"
+    },
+    {
+      "query": "Python function for exponential backoff with jitter",
+      "expected_source_type": "code",
+      "expected_keywords_in_result": ["backoff", "retry"],
+      "difficulty": "code"
+    },
+    {
+      "query": "SQL query to join two tables and group by date",
+      "expected_source_type": "code",
+      "expected_keywords_in_result": ["join", "group by"],
+      "difficulty": "code"
+    },
+    {
+      "query": "How do I declare a typed constant in the config module?",
+      "expected_source_type": "code",
+      "expected_keywords_in_result": ["constant", "config"],
+      "difficulty": "code"
+    },
+    {
+      "query": "Dockerfile multi-stage build to shrink the image",
+      "expected_source_type": "code",
+      "expected_keywords_in_result": ["multi-stage", "image"],
+      "difficulty": "code"
+    },
+    {
+      "query": "How does the presenter handle a failed import during the live demo?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["failed import", "live demo"],
+      "expected_has_timestamp": true,
+      "difficulty": "specific"
+    },
+    {
+      "query": "What is the retention window mentioned in the operations walkthrough?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["retention", "operations walkthrough"],
+      "expected_has_timestamp": true,
+      "difficulty": "specific"
+    },
+    {
+      "query": "What happened with the release rollout in the incident review?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["release rollout", "incident review"],
+      "expected_has_timestamp": true,
+      "difficulty": "specific"
+    },
+    {
+      "query": "Which environment should the smoke tests be run against first?",
+      "expected_source_type": "transcript",
+      "expected_keywords_in_result": ["smoke tests", "environment"],
+      "difficulty": "specific"
+    },
+    {
+      "query": "Queue depth alert above the threshold",
+      "expected_keywords_in_result": ["queue depth", "alert"],
+      "difficulty": "specific"
+    },
+    {
+      "query": "How do I combine a cache layer with a rate limiter for a public endpoint?",
+      "expected_keywords_in_result": ["cache", "rate limiter"],
+      "difficulty": "specific"
+    },
+    {
+      "query": "What does backpressure mean and how is it handled in the consumer?",
+      "expected_keywords_in_result": ["backpressure", "consumer"],
+      "difficulty": "specific"
+    },
+    {
+      "query": "rolling average on the demo dashboard",
+      "expected_collections": ["transcript_segments", "ocr_frames"],
+      "expected_keywords_in_result": ["rolling average"],
+      "difficulty": "video-retrieval"
+    },
+    {
+      "query": "architecture diagram walkthrough on the screen",
+      "expected_collections": ["transcript_segments", "ocr_frames", "od_frames"],
+      "expected_keywords_in_result": ["architecture diagram"],
+      "difficulty": "video-retrieval"
+    },
+    {
+      "query": "conference talk slide deck summary",
+      "expected_collections": ["visual_frames", "ocr_frames"],
+      "expected_keywords_in_result": ["slide"],
+      "difficulty": "video-retrieval"
+    },
+    {
+      "query": "presenter explains the retry policy at 15:30",
+      "expected_collections": ["transcript_segments"],
+      "expected_keywords_in_result": ["retry"],
+      "expected_has_timestamp": true,
+      "difficulty": "video-timestamp"
+    }
+  ]
+}

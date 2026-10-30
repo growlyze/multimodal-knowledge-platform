@@ -1,0 +1,83 @@
+# Core
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+python-multipart==0.0.20
+httpx==0.28.1
+pydantic==2.14.0  # bumped from 2.11.4 — google-genai requires >=2.12.5
+anthropic==1.10.0  # query-planner fallback to Claude when Gemini fails (2026-10-22); 1.17.0 too new to pin
+
+# Data processing
+pandas==2.2.3
+openpyxl==3.1.5
+pyarrow==19.0.0
+
+# Database
+asyncpg==0.30.0
+
+# Haystack + Qdrant (using httpx directly, not qdrant-client)
+# haystack-ai==2.15.0
+# qdrant-haystack==5.0.1
+# qdrant-client==1.14.2
+PyYAML==6.0.2
+
+# Video acquisition (M3)
+yt-dlp==2026.8.19
+
+# P91/C21 bot-detection fix: lets yt-dlp disguise its TLS/HTTP fingerprint
+# as a real browser via --impersonate. No torch/GPU dependency.
+curl_cffi==0.16.3
+
+# Client-side plugin talking to the bgutil-provider sidecar (compose.yml)
+# for YouTube's proof-of-origin token challenge. Pulls in yt-dlp-get-pot
+# (the plugin framework) automatically.
+bgutil-ytdlp-pot-provider==1.3.2
+
+# P135: a logged-in (cookie) session puts yt-dlp on YouTube's web clients,
+# whose formats need the "signature" and "n" JS challenges solved -- without
+# a runtime + solver scripts every one comes back unusable and YouTube says
+# "The page needs to be reloaded". These are the exact versions yt-dlp
+# 2026.8.19 pins in its own `pin` / `pin-deno` extras; bump them together
+# with yt-dlp. The deno wheel ships the deno binary yt-dlp looks for on PATH.
+yt-dlp-ejs==0.8.0
+deno==2.9.5
+
+# D67: vision-capable chart description (Gemini 3.6 Flash). Reads
+# GOOGLE_API_KEY from the environment automatically.
+google-genai==2.29.0
+
+# Video ASR (D65) and visual/text embedding (D66) — both cloud-hosted, no
+# torch/GPU dependency. Replaces local WhisperX + open-clip-torch.
+groq==1.7.0
+voyageai==0.5.0
+Pillow==12.3.0
+
+# M3 visual pipeline — in the codebase since Phase A (video_ingestion.py,
+# annotation_change_detector.py, chart_classifier.py, ocr_track.py) but
+# never added here, so every phase past download has been undeployable.
+# Package is `rapidocr`, not the older `rapidocr-onnxruntime` the code's own
+# error message names — verified by import, not assumed (ocr_track.py does
+# `from rapidocr import RapidOCR`, which only the newer package provides).
+psutil==7.2.2
+opencv-python-headless==5.0.0.93
+scikit-image==0.26.0
+rapidocr==3.10.0
+# rapidocr's actual inference backend -- "pip install rapidocr" does NOT
+# pull this in automatically (it's an optional extra, not a hard dep).
+# Without it, RapidOCR.__call__ fails silently (degrade-never-break design
+# catches it and returns "") on every single frame -- confirmed live
+# 2026-10-12: the first fully-successful M3 ingestion still produced zero
+# OCR text across 88 frames because of this gap. CPU build; GPU not
+# recommended for rapidocr per its own docs.
+onnxruntime==1.31.0
+
+# Observability (D48/D52) — via telemetry_compat.py, not imported directly
+arize-phoenix-otel==0.17.1
+# Transitive dep of arize-phoenix-otel, but processing/telemetry/tracing.py
+# now imports dangerously_using_project/using_session/using_metadata from it
+# directly (ingestion Phoenix-session grouping) — pinned explicitly so it
+# can't silently resolve to an incompatible newer version on its own.
+openinference-instrumentation==0.1.71
+# Read side of Phoenix — scripts/ingestion_quality_report.py queries spans
+# back out (get_spans_dataframe/SpanQuery) for M3 quality/performance
+# reporting. Separate from arize-phoenix-otel (write side, span export).
+arize-phoenix-client==2.1.0  # get_spans_dataframe needs pandas, already pinned above

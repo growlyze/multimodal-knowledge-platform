@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+dist
+coverage
+.git
+.gitignore
+.env
+.env.*
+*.log
+*.tsbuildinfo
+__tests__
+vitest.config.ts
+.DS_Store
+.data

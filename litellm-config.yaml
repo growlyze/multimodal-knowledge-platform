@@ -1,0 +1,95 @@
+# LiteLLM proxy config — one OpenAI-compatible endpoint (http://litellm:4000/v1)
+# in front of every chat-model provider. Open WebUI connects to it once and
+# lists every `model_name` below in its model picker, so switching provider is
+# picking another model in the chat UI (or Admin -> Settings -> Models), not a
+# redeploy.
+#
+# Why a proxy at all: Open WebUI pointed straight at Google's OpenAI-compatible
+# endpoint returns blank responses as soon as Function Calling is set to
+# Native. LiteLLM normalises Gemini's tool-call payloads into the OpenAI shape
+# Open WebUI expects, so Native can stay on.
+#
+# Keys: every api_key is `os.environ/<VAR>`, resolved from the stack .env
+# (compose.yml hands it to this container with env_file). Nothing secret lives
+# in this file. A provider whose key is empty still loads; only calls to its
+# models fail, so leave unused providers in place or delete their entries.
+#
+#   GOOGLE_API_KEY      Gemini (Google AI Studio)          required (default chat models)
+#   ANTHROPIC_API_KEY   Claude                             optional
+#   GROQ_API_KEY        Groq-hosted open models            optional
+#   VOYAGE_API_KEY      Voyage embeddings via the proxy    optional (haystack-api
+#                       calls Voyage directly with EMBEDDING_API_KEY; this entry
+#                       is only for clients that want embeddings through LiteLLM)
+#
+# Model aliases (`model_name`) are generic and stable: rename the underlying
+# `model:` when a provider ships a newer version and the chat UI keeps working.
+#
+# Gemini `model:` MUST keep the gemini/ prefix. LiteLLM reads an unprefixed
+# model name as Vertex AI, which wants GCP service-account credentials — the
+# prefix selects the AI Studio (API key) path.
+
+model_list:
+  # ── Google Gemini ──────────────────────────────────────────────────────────
+  # Default chat model: fast, cheap, multimodal.
+  - model_name: gemini-flash
+    litellm_params:
+      model: gemini/gemini-3.8-flash
+      api_key: os.environ/GOOGLE_API_KEY
+      # Explicit reasoning level (LiteLLM maps it to Gemini 3's thinkingLevel).
+      # "medium": real reasoning on multi-step questions without "high"'s
+      # latency on every turn of a Flash-tier model.
+      reasoning_effort: medium
+
+  # Tested backup Gemini model.
+  - model_name: gemini-flash-backup
+    litellm_params:
+      model: gemini/gemini-3.7-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # Cheapest Gemini tier, for light tasks (titles, tags, follow-up prompts).
+  - model_name: gemini-flash-lite
+    litellm_params:
+      model: gemini/gemini-3.5-flash-lite
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # ── Anthropic Claude ───────────────────────────────────────────────────────
+  - model_name: claude-opus
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ── Groq (optional) ────────────────────────────────────────────────────────
+  # Check https://console.groq.com/docs/models for the current model ids.
+  - model_name: groq-llama
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+
+  # ── Voyage embeddings (optional) ───────────────────────────────────────────
+  - model_name: voyage-embed
+    litellm_params:
+      model: voyage/voyage-4-large
+      api_key: os.environ/VOYAGE_API_KEY
+    model_info:
+      mode: embedding
+
+# No general_settings.master_key on purpose. Open WebUI is configured with a
+# throwaway key ("sk-litellm"); setting a master key here would reject it and
+# every turn would 401. The proxy publishes no host port and sits on the
+# internal network only, so its reachable surface matches haystack-api's.
+
+# Re-send a Gemini turn that came back empty (MALFORMED_FUNCTION_CALL is mapped
+# to "stop" with no text and no tool call). Max 2 retries. Module mounted next
+# to this file by compose.yml.
+litellm_settings:
+  callbacks: gemini_malformed_retry.proxy_handler_instance

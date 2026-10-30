@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Respect the OS preference when no theme cookie exists (the inline script
+   applies the dark class before first paint). */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Consistent, visible focus rings everywhere (keyboard accessibility). */
+:focus-visible {
+  outline: 2px solid theme('colors.brand.500');
+  outline-offset: 2px;
+}
+
+/* Slim scrollbars for dense tables and drawers. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.slate.300') transparent;
+}
+
+.dark * {
+  scrollbar-color: theme('colors.slate.700') transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: theme('colors.slate.300');
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: theme('colors.slate.700');
+}
+
+/* Numeric tables: align quantities and costs on the decimal. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

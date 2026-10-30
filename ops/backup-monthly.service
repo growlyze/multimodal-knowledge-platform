@@ -1,0 +1,20 @@
+# Monthly encrypted backup to the MONTHLY folder of the Google Drive backup
+# folder (rclone:gdrive:backups/monthly), keeping the newest 1. Run by
+# backup-monthly.timer (the 1st of the month 21:00 UTC). Same script,
+# same lock, same verification as the daily runs — only the target folder and
+# the kept count differ. Install: see the header of /opt/gmac/ops/backup.sh.
+
+[Unit]
+Description=gmac encrypted backup to the monthly folder (restic + rclone)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=INSTALL_DIR=/opt/gmac
+Environment=STACK_NAME=gmac
+Type=oneshot
+ExecStart=/bin/bash ${INSTALL_DIR}/ops/backup.sh --target monthly
+TimeoutStartSec=6h
+Nice=10
+IOSchedulingClass=idle
+ProtectSystem=full

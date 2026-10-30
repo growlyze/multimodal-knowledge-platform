@@ -1,0 +1,12 @@
+# mutmut 3.x configuration. Scoped to file_summary.py and export.py ONLY:
+# these are the two modules where a flipped comparison or wrong constant
+# silently changes a reported fact or a written cell. Whole-library mutation
+# runs are slow and low-signal on I/O-adjacent code (loader.py,
+# visualization.py).
+[tool.mutmut]
+source_paths = ["data_tools/"]
+only_mutate = [
+    "data_tools/file_summary.py",
+    "data_tools/export.py",
+]
+pytest_add_cli_args_test_selection = ["data_tools/tests/"]

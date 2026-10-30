@@ -1,0 +1,17 @@
+# 1st of the month 21:00 UTC trigger for backup-monthly.service: one
+# backup a month into the monthly folder (newest 1 kept).
+# Install: see ops/backup-monthly.service.
+
+[Unit]
+Description=Monthly gmac backup to the monthly folder (the 1st, 21:00 UTC)
+
+[Timer]
+# Explicit UTC. After the 19:00 daily slot; the shared lock means the two can
+# never run at the same time anyway.
+OnCalendar=*-*-01 21:00:00 UTC
+# A missed 1st is caught up, never skipped.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

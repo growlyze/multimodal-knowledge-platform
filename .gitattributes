@@ -1,0 +1,6 @@
+# Unix line endings everywhere: shell scripts, Dockerfiles and systemd units
+# break with CRLF, and the stack runs on Linux containers.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.xlsx binary
