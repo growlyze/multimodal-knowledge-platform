@@ -52,7 +52,7 @@ export function LoginForm({ appName }: { appName: string }) {
   return (
     <Panel className="w-full max-w-md">
       <div className="mb-5 flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600 text-white">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white">
           <IconAdmin className="h-5 w-5" />
         </span>
         <div>

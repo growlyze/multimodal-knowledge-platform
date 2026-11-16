@@ -28,7 +28,7 @@ export function BarChart({
     return (
       <div
         className={cx(
-          'flex items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400',
+          'flex items-center justify-center rounded-2xl border border-dashed border-slate-300 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400',
           className,
         )}
         style={{ height }}
@@ -42,14 +42,18 @@ export function BarChart({
   const fmt = formatValue ?? ((value: number) => value.toFixed(2));
 
   return (
-    <div className={cx('rounded-md border border-slate-200 p-3 dark:border-slate-800', className)}>
+    <div className={cx('rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/40', className)}>
       <div className="flex items-end gap-1" style={{ height }} role="img" aria-label={buildSummary(data, fmt)}>
         {data.map((datum) => {
           const ratio = Math.max(datum.value > 0 ? 0.02 : 0, datum.value / max);
+          const peak = datum.value > 0 && datum.value === max;
           return (
             <div key={datum.label} className="group flex h-full min-w-0 flex-1 flex-col justify-end gap-1">
               <div
-                className="w-full rounded-t bg-brand-500/80 transition-colors group-hover:bg-brand-600 dark:bg-brand-600/80 dark:group-hover:bg-brand-500"
+                className={cx(
+                  'w-full rounded-md transition-colors group-hover:bg-brand-500',
+                  peak ? 'bg-brand-500' : 'bg-slate-900 dark:bg-slate-300',
+                )}
                 style={{ height: `${Math.round(ratio * 100)}%` }}
                 title={`${datum.label}: ${fmt(datum.value)}${datum.hint ? ` · ${datum.hint}` : ''}`}
               />

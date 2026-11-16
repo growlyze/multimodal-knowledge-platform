@@ -79,7 +79,7 @@ export function ErrorState({
     <div
       role="alert"
       className={cx(
-        'flex flex-col items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-900 dark:bg-rose-950/50',
+        'flex flex-col items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-900 dark:bg-rose-950/50',
         className,
       )}
     >
@@ -109,7 +109,7 @@ export function UnavailableNotice({ feature, detail }: { feature: string; detail
   return (
     <div
       role="status"
-      className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900"
+      className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900"
     >
       <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
       <div>

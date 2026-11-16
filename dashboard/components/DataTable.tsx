@@ -74,7 +74,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
@@ -90,7 +90,7 @@ export function DataTable<T>({
                       activeSort ? (activeSort.dir === 'asc' ? 'ascending' : 'descending') : undefined
                     }
                     className={cx(
-                      'px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400',
+                      'px-3 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400',
                       column.className,
                     )}
                   >

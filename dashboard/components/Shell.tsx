@@ -25,8 +25,8 @@ export function Shell({
   const [collapsed, setCollapsed] = usePersistentState<boolean>('gmac_sidebar_collapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const section = currentSection(pathname);
-  // Section accent for the top bar, page title and panels (see sections.ts).
-  const accentStyle = { '--accent': section?.theme.accent ?? '#4f46e5' } as CSSProperties;
+  // One brand accent everywhere (orange on neutral greys).
+  const accentStyle = { '--accent': '#f26430' } as CSSProperties;
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100" style={accentStyle}>
@@ -37,9 +37,9 @@ export function Shell({
         onCloseMobile={() => setMobileOpen(false)}
         appName={appName}
       />
-      <div className={`transition-[padding] duration-200 ${collapsed ? 'lg:pl-16' : 'lg:pl-64'}`}>
+      <div className={`transition-[padding] duration-200 ${collapsed ? 'lg:pl-[5.5rem]' : 'lg:pl-[17.5rem]'}`}>
         <TopBar title={section?.label ?? 'Dashboard'} username={username} onOpenMobile={() => setMobileOpen(true)} />
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-2 sm:px-6 lg:pl-2 lg:pr-6">{children}</main>
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export function Tabs({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cx('flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800', className)}
+      className={cx('flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-white p-1 shadow-card dark:bg-slate-900', className)}
       onKeyDown={(event) => {
         if (event.key === 'ArrowRight') {
           event.preventDefault();
@@ -76,11 +76,11 @@ export function Tabs({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.id)}
             className={cx(
-              'relative -mb-px whitespace-nowrap rounded-t-md px-3.5 py-2 text-sm font-medium transition-colors',
+              'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
               selected
-                ? 'border-b-2 border-[color:var(--accent)] text-slate-900 dark:text-white'
-                : 'border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200',
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200',
             )}
           >
             {tab.label}
@@ -89,7 +89,7 @@ export function Tabs({
                 className={cx(
                   'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
                   selected
-                    ? 'bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200'
+                    ? 'bg-brand-500 text-white'
                     : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
                 )}
               >

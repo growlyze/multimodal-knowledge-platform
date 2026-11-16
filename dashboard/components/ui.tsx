@@ -29,11 +29,11 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md';
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  // Follows the current section's accent (--accent, set by Shell).
+  // Near-black pill (light) / white pill (dark); orange is kept for highlights.
   primary:
-    'bg-[color:var(--accent,#4f46e5)] text-white hover:brightness-110 focus-visible:ring-[color:var(--accent,#4f46e5)]',
+    'bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-brand-500 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200',
   secondary:
-    'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus-visible:ring-brand-500 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600 dark:hover:bg-slate-700',
+    'bg-slate-100 text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-200 focus-visible:ring-brand-500 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700',
   ghost:
     'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-brand-500 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white',
   danger:
@@ -41,8 +41,8 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-2.5 text-xs gap-1.5',
-  md: 'h-9 px-3.5 text-sm gap-2',
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -67,7 +67,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cx(
-        'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+        'inline-flex items-center justify-center rounded-full font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950',
         'disabled:cursor-not-allowed disabled:opacity-60',
         BUTTON_VARIANTS[variant],
@@ -85,7 +85,7 @@ export function Button({
 /* ------------------------------------------------------------------ Fields */
 
 const FIELD_CLASSES =
-  'block w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-500 disabled:bg-slate-50 disabled:text-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900';
+  'block w-full rounded-xl border-0 bg-white px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 disabled:bg-slate-50 disabled:text-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900';
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cx(FIELD_CLASSES, className)} {...rest} />;
@@ -154,15 +154,14 @@ export function Panel({
   return (
     <section
       className={cx(
-        'overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800',
-        title || actions ? 'border-t-[3px] border-t-[color:var(--accent)]' : null,
+        'overflow-hidden rounded-3xl bg-white shadow-card dark:bg-slate-900',
         className,
       )}
     >
       {title || actions ? (
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60 sm:px-5">
+        <header className="flex flex-wrap items-start justify-between gap-3 px-5 pb-1 pt-5 sm:px-6">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">{title}</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
             {description ? (
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>
             ) : null}
@@ -170,7 +169,7 @@ export function Panel({
           {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
         </header>
       ) : null}
-      <div className={cx('px-4 py-4 sm:px-5', bodyClassName)}>{children}</div>
+      <div className={cx('px-5 py-5 sm:px-6', bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -227,7 +226,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h1>
         {description ? <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

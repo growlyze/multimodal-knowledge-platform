@@ -41,7 +41,7 @@ export function StatusBanner({
   return (
     <div
       role="status"
-      className={cx('flex items-start gap-3 rounded-lg border px-4 py-3', style.className, className)}
+      className={cx('flex items-start gap-3 rounded-2xl border px-4 py-3', style.className, className)}
     >
       <span className="mt-0.5 shrink-0">{style.icon}</span>
       <div className="min-w-0 flex-1">
