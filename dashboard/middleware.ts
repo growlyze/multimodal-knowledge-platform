@@ -8,6 +8,7 @@ import {
   verifyCsrf,
   verifySession,
 } from '@/lib/auth';
+import { allowedHosts, isSameOriginRequest } from '@/lib/origin';
 
 /**
  * Route protection for the whole dashboard (deployed under the /kb base path):
@@ -51,28 +52,17 @@ function jsonError(request: NextRequest, status: number, error: string, code: st
 
 /**
  * Same-origin guard for state-changing requests: the browser must come from
- * this deployment itself (Origin or Referer). Requests without either header
- * (non-browser clients) already need the session cookie + CSRF token, so only
- * a cross-origin browser request is refused here.
+ * this deployment itself (Origin or Referer). See lib/origin.ts for why the
+ * public host is not taken from request.nextUrl alone.
  */
 function isSameOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== 'null') {
-    try {
-      return new URL(origin).host === request.nextUrl.host;
-    } catch {
-      return false;
-    }
-  }
-  const referer = request.headers.get('referer');
-  if (referer) {
-    try {
-      return new URL(referer).host === request.nextUrl.host;
-    } catch {
-      return false;
-    }
-  }
-  return true;
+  const allowed = allowedHosts({
+    nextUrlHost: request.nextUrl.host,
+    host: request.headers.get('host'),
+    forwardedHost: request.headers.get('x-forwarded-host'),
+    publicBaseUrl: process.env.PUBLIC_BASE_URL,
+  });
+  return isSameOriginRequest(request.headers.get('origin'), request.headers.get('referer'), allowed);
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
